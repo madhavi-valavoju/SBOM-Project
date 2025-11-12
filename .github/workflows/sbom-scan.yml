@@ -1,0 +1,45 @@
+name: Vulnerability Scan + Graph
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Grype
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh \
+            | sh -s -- -b /usr/local/bin
+
+      # Scan the repo folder directly (same as your local "grype dir:.")
+      - name: Run Grype (JSON)
+        run: |
+          grype dir:. -o json > grype-report.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate vulnerability graph
+        run: |
+          python process_grype.py grype-report.json
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-results
+          path: |
+            grype-report.json
+            vulnerability_bar_chart.png
