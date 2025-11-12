@@ -17,7 +17,6 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh \
             | sh -s -- -b /usr/local/bin
 
-      # Scan the repo folder directly (same as your local "grype dir:.")
       - name: Run Grype (JSON)
         run: |
           grype dir:. -o json > grype-report.json
@@ -31,15 +30,27 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          # fallback in case matplotlib isn't listed
+          python -c "import matplotlib" || pip install matplotlib
 
       - name: Generate vulnerability graph
         run: |
           python process_grype.py grype-report.json
 
-      - name: Upload results
+      - name: Upload results as artifact
         uses: actions/upload-artifact@v4
         with:
           name: sbom-results
           path: |
             grype-report.json
             vulnerability_bar_chart.png
+
+      - name: Commit and push updated graph
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase
+          cp vulnerability_bar_chart.png ./vulnerability_bar_chart.png
+          git add vulnerability_bar_chart.png
+          git commit -m "Update vulnerability graph" || echo "No changes to commit"
+          git push
