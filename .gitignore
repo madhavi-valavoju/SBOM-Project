@@ -12,7 +12,7 @@ Thumbs.db
 
 # Ignore generated reports and images
 grype-report.json
-vulnerability_bar_chart.png
+
 sbom.json
 fixed-grype-report.json
 sca_report.csv
